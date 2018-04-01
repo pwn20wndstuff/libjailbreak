@@ -46,15 +46,9 @@ int jb_entitle_now(jb_connection_t connection, pid_t pid, uint32_t flags) {
     return 0;
 }
 
-/* Fix setuid on a process (blocking, requires connection) */
+/* DEPRECIATED                                              */
+/* Fix setuid on a process (blocking, requires connection)  */
 int jb_fix_setuid_now(jb_connection_t connection, pid_t pid) {
-    struct jb_connection *conn = (struct jb_connection *)connection;
-    kern_return_t ret = jbd_call(conn->jbd_port, JAILBREAKD_COMMAND_FIXUP_SETUID, pid);
-    
-    if (ret != KERN_SUCCESS) {
-        return 1;
-    }
-    
     return 0;
 }
 
@@ -65,10 +59,10 @@ void jb_entitle(jb_connection_t connection, pid_t pid, uint32_t flags, jb_callba
     callback(ret);
 }
 
+/* DEPRECIATED                                              */
 /* Fix setuid on a process (asynchronous, requries connection) */
 void jb_fix_setuid(jb_connection_t connection, pid_t pid, jb_callback_t callback) {
-    int ret = jb_fix_setuid_now(connection, pid);
-    callback(ret);
+    callback(0);
 }
 #endif
 
@@ -85,17 +79,10 @@ int jb_oneshot_entitle_now(pid_t pid, uint32_t flags) {
     return ret;
 }
 
-/* Fix setuid on a process (blocking, no connection required) */
+/* DEPRECIATED                                                  */
+/* Fix setuid on a process (blocking, no connection required)   */
 int jb_oneshot_fix_setuid_now(pid_t pid) {
-    jb_connection_t conn = jb_connect();
-    if (conn == NULL) {
-        return 1;
-    }
-    
-    int ret = jb_fix_setuid_now(conn, pid);
-    jb_disconnect(conn);
-    
-    return ret;
+    return 0;
 }
 
 #if __BLOCKS__
@@ -105,9 +92,9 @@ void jb_oneshot_entitle(pid_t pid, uint32_t flags, jb_callback_t callback) {
     callback(ret);
 }
 
-/* Fix setuid on a process (asynchronous, no connection required) */
+/* DEPRECIATED                                                      */
+/* Fix setuid on a process (asynchronous, no connection required)   */
 void jb_oneshot_fix_setuid(pid_t pid, jb_callback_t callback) {
-    int ret = jb_oneshot_fix_setuid_now(pid);
-    callback(ret);
+    callback(0);
 }
 #endif
