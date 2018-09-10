@@ -25,7 +25,7 @@ typedef void (^jb_callback_t)(int result);
 /*
     == Terminology ==
     'entitle'       = entilement functionality
-    'fix_setuid'    = fix setuid for your binary - NOTE: these calls are only here as to not cause issues with Electra/others, they are not neeed by Meridian
+    'fix_setuid'    = fix setuid for your binary
     'now'           = calls are blocking
     'oneshot'       = jb_connect/jb_disconnect is handled for you
  */
