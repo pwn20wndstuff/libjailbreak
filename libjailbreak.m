@@ -1,6 +1,8 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <mach/mach.h>
+#include <mach-o/dyld.h>
 #include "libjailbreak.h"
 #include "mach/jailbreak_daemonUser.h"
 
@@ -8,6 +10,8 @@
 #define JAILBREAKD_COMMAND_ENTITLE_AND_SIGCONT 2
 #define JAILBREAKD_COMMAND_ENTITLE_AND_SIGCONT_FROM_XPCPROXY 3
 #define JAILBREAKD_COMMAND_FIXUP_SETUID 4
+
+static bool dosuid=false;
 
 kern_return_t bootstrap_look_up(mach_port_t port, const char *service, mach_port_t *server_port);
 
@@ -48,15 +52,15 @@ int jb_entitle_now(jb_connection_t connection, pid_t pid, uint32_t flags) {
 
 /* Fix setuid on a process (blocking, requires connection) */
 int jb_fix_setuid_now(jb_connection_t connection, pid_t pid) {
-#if (__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__ >= 110000)
-    struct jb_connection *conn = (struct jb_connection *)connection;
-    kern_return_t ret = jbd_call(conn->jbd_port, JAILBREAKD_COMMAND_FIXUP_SETUID, pid);
-    
-    if (ret != KERN_SUCCESS) {
-        return 1;
+    if (dosuid) {
+        struct jb_connection *conn = (struct jb_connection *)connection;
+        kern_return_t ret = jbd_call(conn->jbd_port, JAILBREAKD_COMMAND_FIXUP_SETUID, pid);
+
+        if (ret != KERN_SUCCESS) {
+            return 1;
+        }
     }
-#endif
-    
+
     return 0;
 }
 
@@ -69,12 +73,12 @@ void jb_entitle(jb_connection_t connection, pid_t pid, uint32_t flags, jb_callba
 
 /* Fix setuid on a process (asynchronous, requries connection) */
 void jb_fix_setuid(jb_connection_t connection, pid_t pid, jb_callback_t callback) {
-#if (__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__ >= 110000)
-    int ret = jb_fix_setuid_now(connection, pid);
-    callback(ret);
-#else
-    callback(0);
-#endif
+    if (dosuid) {
+        int ret = jb_fix_setuid_now(connection, pid);
+        callback(ret);
+    } else {
+        callback(0);
+    }
 }
 #endif
 
@@ -93,19 +97,17 @@ int jb_oneshot_entitle_now(pid_t pid, uint32_t flags) {
 
 /* Fix setuid on a process (blocking, no connection required) */
 int jb_oneshot_fix_setuid_now(pid_t pid) {
-#if (__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__ >= 110000)
-    jb_connection_t conn = jb_connect();
-    if (conn == NULL) {
-        return 1;
+    if (dosuid) {
+        jb_connection_t conn = jb_connect();
+        if (conn == NULL) {
+            return 1;
+        }
+
+        int ret = jb_fix_setuid_now(conn, pid);
+        jb_disconnect(conn);
+        return ret;
     }
-    
-    int ret = jb_fix_setuid_now(conn, pid);
-    jb_disconnect(conn);
-    
-    return ret;
-#else
     return 0;
-#endif
 }
 
 #if __BLOCKS__
@@ -117,11 +119,18 @@ void jb_oneshot_entitle(pid_t pid, uint32_t flags, jb_callback_t callback) {
 
 /* Fix setuid on a process (asynchronous, no connection required) */
 void jb_oneshot_fix_setuid(pid_t pid, jb_callback_t callback) {
-#if (__ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__ >= 110000)
-    int ret = jb_oneshot_fix_setuid_now(pid);
-    callback(ret);
-#else
+    if (dosuid) {
+        int ret = jb_oneshot_fix_setuid_now(pid);
+        callback(ret);
+    }
     callback(0);
-#endif
 }
 #endif
+
+
+__attribute__((constructor))
+    void ctor() {
+        if (NSVersionOfRunTimeLibrary("System") >= (1252<<16) ) {
+            dosuid=true;
+        }
+    }
