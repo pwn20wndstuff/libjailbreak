@@ -2,7 +2,7 @@ TARGET  = libjailbreak.dylib
 PREFIX ?= /usr/lib
 OUTDIR ?= bin
 
-CC      = xcrun -sdk iphoneos gcc -arch arm64 -arch armv7 -arch armv7s
+CC      = xcrun -sdk iphoneos gcc -arch arm64 -arch arm64e
 LDID    = ldid
 
 .PHONY: all install clean
